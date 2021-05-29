@@ -2,6 +2,12 @@ package com.kusalk.projects.session.handler.demo;
 
 import java.io.Serializable;
 
+/**
+ * Demo entity class
+ * <p>
+ * Created By :
+ * Created On : 5/29/2021
+ */
 public class Person implements Serializable {
 
     private String name;

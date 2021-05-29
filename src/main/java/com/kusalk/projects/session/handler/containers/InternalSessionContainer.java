@@ -1,5 +1,6 @@
-package com.kusalk.projects.session.handler;
+package com.kusalk.projects.session.handler.containers;
 
+import com.kusalk.projects.session.handler.session.Session;
 import com.kusalk.projects.session.handler.util.SessionCode;
 import com.kusalk.projects.session.handler.util.SessionResponse;
 
@@ -9,6 +10,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+/**
+ * This class contains the implementation logic to handle sessions within a single server instance. Only one instance
+ * of this class should be there for the entire app server as this class is responsible for handling all the sessions
+ * within the application.
+ * <p>
+ * Created By : Kusal Kankanamge
+ * Created On : 5/29/2021
+ */
 public class InternalSessionContainer {
 
     public static final int SESSION_GENERATE_LIMIT = 3;
@@ -25,10 +34,21 @@ public class InternalSessionContainer {
         runSessionRemoverThread( );
     }
 
+    /**
+     * Single session container instance should be maintained throughout the application
+     *
+     * @return {@link InternalSessionContainer} instance
+     */
     public static InternalSessionContainer getInstance( ) {
         return ResourceHolder.LOCAL_SESSION_CONTAINER;
     }
 
+    /**
+     * Loads the session from the session container object within the server.
+     *
+     * @param sessionId session id
+     * @return {@link Session} session object
+     */
     public Session loadSessionFromContainer( String sessionId ) {
         try {
             readLock.lock( );
@@ -45,6 +65,14 @@ public class InternalSessionContainer {
         return null;
     }
 
+    /**
+     * Creates a session object based on the provided session-class with the provided timeout. This will add the
+     * newly created session to the session container within the server
+     *
+     * @param sessionClass     session-class
+     * @param timeoutInSeconds timeout in seconds
+     * @return {@link SessionResponse<String>} session response
+     */
     public SessionResponse<String> createSession( String sessionClass, long timeoutInSeconds ) {
         try {
             writeLock.lock( );
@@ -77,6 +105,13 @@ public class InternalSessionContainer {
         }
     }
 
+    /**
+     * Removes the session from the local session-container. This can happen when a session gets timed out or when the session gets written
+     * to an external source and no longer needed in the memory.
+     *
+     * @param sessionId session id
+     * @return {@link SessionResponse<Boolean>} session response
+     */
     public SessionResponse<Boolean> removeSession( String sessionId ) {
         try {
             writeLock.lock( );
@@ -100,6 +135,10 @@ public class InternalSessionContainer {
         return removedSession;
     }
 
+    /**
+     * This is an infinitely running thread which checks the session container for timed-out sessions.
+     * If this finds any timed out sessions, then they will be removed from the memory
+     */
     private void runSessionRemoverThread( ) {
         Thread sessionRemover = new Thread( ( ) -> {
             while ( true ) {

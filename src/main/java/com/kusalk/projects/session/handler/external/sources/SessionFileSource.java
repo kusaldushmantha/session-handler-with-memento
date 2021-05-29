@@ -1,11 +1,18 @@
 package com.kusalk.projects.session.handler.external.sources;
 
-import com.kusalk.projects.session.handler.SessionMemento;
+import com.kusalk.projects.session.handler.session.SessionMemento;
 import com.kusalk.projects.session.handler.util.SessionCode;
 import com.kusalk.projects.session.handler.util.SessionResponse;
 
 import java.io.*;
 
+/**
+ * This is a simple implementation of an {@link ExternalSessionSource} where session memento objects
+ * are serialized to a file.
+ * <p>
+ * Created By : Kusal Kankanamge
+ * Created On : 5/29/2021
+ */
 public class SessionFileSource implements ExternalSessionSource {
 
     @Override

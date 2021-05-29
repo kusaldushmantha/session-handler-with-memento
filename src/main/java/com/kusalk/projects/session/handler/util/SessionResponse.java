@@ -1,5 +1,11 @@
 package com.kusalk.projects.session.handler.util;
 
+/**
+ * Session response object which contains the status of an operation
+ * <p>
+ * Created By : Kusal Kankanamge
+ * Created On : 5/29/2021
+ */
 public class SessionResponse<T> {
 
     private final String message;
