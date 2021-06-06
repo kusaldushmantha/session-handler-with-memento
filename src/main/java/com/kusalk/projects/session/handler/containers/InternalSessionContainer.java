@@ -9,6 +9,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * This class contains the implementation logic to handle sessions within a single server instance. Only one instance
@@ -19,6 +21,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * Created On : 5/29/2021
  */
 public class InternalSessionContainer {
+
+    private static final Logger LOGGER = Logger.getLogger( InternalSessionContainer.class.getName( ) );
 
     public static final int SESSION_GENERATE_LIMIT = 3;
     public static final int SESSION_REMOVER_WAIT_TIME_MILLIS = 10000;
@@ -40,6 +44,7 @@ public class InternalSessionContainer {
      * @return {@link InternalSessionContainer} instance
      */
     public static InternalSessionContainer getInstance( ) {
+        LOGGER.log( Level.FINE, "Creating an internal session container" );
         return ResourceHolder.LOCAL_SESSION_CONTAINER;
     }
 
@@ -58,7 +63,7 @@ public class InternalSessionContainer {
                 return sessionContainer.get( sessionId );
             }
         } catch ( Exception e ) {
-            e.printStackTrace( );
+            LOGGER.log( Level.SEVERE, e, ( ) -> "Error occurred while loading session from internal container" );
         } finally {
             readLock.unlock( );
         }
@@ -79,10 +84,18 @@ public class InternalSessionContainer {
 
             String sessionId;
             int retryCounter = 0;
+            boolean sessionContainedAlready;
+
             do {
                 sessionId = UUID.randomUUID( ).toString( );
+                sessionContainedAlready = sessionContainer.containsKey( sessionId );
                 retryCounter++;
-            } while ( sessionContainer.containsKey( sessionId ) && retryCounter <= SESSION_GENERATE_LIMIT );
+            } while ( sessionContainedAlready && retryCounter <= SESSION_GENERATE_LIMIT );
+
+            if ( sessionContainedAlready ) {
+                LOGGER.log( Level.WARNING, ( ) -> "Error creating session. Session store contains generated sessionIDs. Tried " + SESSION_GENERATE_LIMIT + " times" );
+                return new SessionResponse<>( "Error creating session. Session store contains generated sessionIDs", SessionCode.ERROR, null );
+            }
 
             Session sessionObject = ( Session ) Class.forName( sessionClass ).getDeclaredConstructor( ).newInstance( );
             sessionObject.setSessionId( sessionId );
@@ -94,11 +107,14 @@ public class InternalSessionContainer {
             if ( addToQueue ) {
                 return new SessionResponse<>( "Session created successfully and added to local container", SessionCode.SUCCESS, sessionId );
             } else {
+                LOGGER.log( Level.WARNING, "Error adding sessionID for session queue. SessionID : {0}", sessionId );
+
                 removeSessionFromLocalContainer( sessionId );
                 return new SessionResponse<>( "Session could not add to local session queue", SessionCode.ERROR, sessionId );
             }
 
         } catch ( InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException | ClassNotFoundException e ) {
+            LOGGER.log( Level.SEVERE, e, ( ) -> "Error while creating a session" );
             return new SessionResponse<>( "Error creating session : " + e.getCause( ).getMessage( ), SessionCode.ERROR, null );
         } finally {
             writeLock.unlock( );
@@ -120,7 +136,7 @@ public class InternalSessionContainer {
                 return new SessionResponse<>( "Session removed for id : " + sessionId, SessionCode.SUCCESS, true );
             }
         } catch ( Exception e ) {
-            e.printStackTrace( );
+            LOGGER.log( Level.SEVERE, e, ( ) -> "Error while removing th session from local container" );
         } finally {
             writeLock.unlock( );
         }
@@ -130,6 +146,7 @@ public class InternalSessionContainer {
     private Session removeSessionFromLocalContainer( String sessionId ) {
         Session removedSession = sessionContainer.remove( sessionId );
         if ( removedSession != null ) {
+            LOGGER.log( Level.FINE, "Session removed from local container. SessionID : ", sessionId );
             sessionQueue.remove( removedSession.getSessionId( ) );
         }
         return removedSession;
@@ -162,14 +179,14 @@ public class InternalSessionContainer {
                     try {
                         wait( SESSION_REMOVER_WAIT_TIME_MILLIS );
                     } catch ( InterruptedException e ) {
-                        e.printStackTrace( );
+                        LOGGER.log( Level.SEVERE, e.getMessage( ), e );
                     }
                 }
             }
         } );
         sessionRemover.setDaemon( true );
         sessionRemover.setName( "session-remover-thread" );
-        sessionRemover.setUncaughtExceptionHandler( ( t, e ) -> e.printStackTrace( ) );
+        sessionRemover.setUncaughtExceptionHandler( ( t, e ) -> LOGGER.log( Level.SEVERE, e, ( ) -> "Error occurred within the session remover thread" ) );
         sessionRemover.start( );
     }
 

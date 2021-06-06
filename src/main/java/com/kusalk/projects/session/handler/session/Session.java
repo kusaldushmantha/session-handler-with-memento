@@ -2,6 +2,8 @@ package com.kusalk.projects.session.handler.session;
 
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * This is the parent class of all sessions within the application.
@@ -10,6 +12,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * Created On : 5/29/2021
  */
 public abstract class Session {
+
+    private static final Logger LOGGER = Logger.getLogger( Session.class.getName( ) );
 
     private final ReentrantReadWriteLock sessionLock = new ReentrantReadWriteLock( );
     private final Lock writeLock = sessionLock.writeLock( );
@@ -54,6 +58,7 @@ public abstract class Session {
      * This method should be called before writing the session memento object to the external source
      */
     public void startWritingSession( ) {
+        LOGGER.log( Level.FINE, "Started writing session {0} to external source", new Object[]{ sessionId } );
         writeLock.lock( );
     }
 
@@ -61,6 +66,7 @@ public abstract class Session {
      * This method should be called after writing the session memento object to the external source
      */
     public void endWritingSession( ) {
+        LOGGER.log( Level.FINE, "Finished writing session {0} to external source", new Object[]{ sessionId } );
         writeLock.unlock( );
     }
 
@@ -68,6 +74,7 @@ public abstract class Session {
      * This method should be called immediately after loading the session to the session container before working with the session
      */
     public void startReadingSession( ) {
+        LOGGER.log( Level.FINE, "Started reading session {0} to external source", new Object[]{ sessionId } );
         readLock.lock( );
     }
 
@@ -75,6 +82,7 @@ public abstract class Session {
      * This method should be called after working with the session
      */
     public void endReadingSession( ) {
+        LOGGER.log( Level.FINE, "Finished reading session {0} to external source", new Object[]{ sessionId } );
         readLock.unlock( );
     }
 

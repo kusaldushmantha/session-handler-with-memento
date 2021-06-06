@@ -5,6 +5,8 @@ import com.kusalk.projects.session.handler.util.SessionCode;
 import com.kusalk.projects.session.handler.util.SessionResponse;
 
 import java.io.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * This is a simple implementation of an {@link ExternalSessionSource} where session memento objects
@@ -14,6 +16,8 @@ import java.io.*;
  * Created On : 5/29/2021
  */
 public class SessionFileSource implements ExternalSessionSource {
+
+    private static final Logger LOGGER = Logger.getLogger( SessionFileSource.class.getName( ) );
 
     @Override
     public SessionResponse<SessionMemento> readSessionMemento( String sessionId ) {
@@ -25,7 +29,7 @@ public class SessionFileSource implements ExternalSessionSource {
             return new SessionResponse<>( "Successful reading session from file for session : " + sessionId, SessionCode.SUCCESS, memento );
 
         } catch ( Exception e ) {
-            e.printStackTrace( );
+            LOGGER.log( Level.SEVERE, e, ( ) -> "Error occurred while reading session memento : " + sessionId );
         }
         return new SessionResponse<>( "Error reading session from file for session : " + sessionId, SessionCode.ERROR, null );
     }
@@ -39,8 +43,8 @@ public class SessionFileSource implements ExternalSessionSource {
 
             return new SessionResponse<>( "Session successfully written to external source", SessionCode.SUCCESS, true );
 
-        } catch ( IOException e ) {
-            e.printStackTrace( );
+        } catch ( Exception e ) {
+            LOGGER.log( Level.SEVERE, e, ( ) -> "Error occurred while writing session memento : " + sessionId );
         }
 
         return new SessionResponse<>( "Session writing to external source failed", SessionCode.ERROR, false );

@@ -8,6 +8,9 @@ import com.kusalk.projects.session.handler.util.SessionCode;
 import com.kusalk.projects.session.handler.util.SessionMessages;
 import com.kusalk.projects.session.handler.util.SessionResponse;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  * This is the main API-implementation for using the session handler within an application
  * <p>
@@ -15,6 +18,8 @@ import com.kusalk.projects.session.handler.util.SessionResponse;
  * Created On : 5/29/2021
  */
 public class SessionServices {
+
+    private final Logger LOGGER = Logger.getLogger( SessionServices.class.getName( ) );
 
     private final InternalSessionContainer internalSessionContainer;
     private final boolean loadSessionsFromExternalLoader;
@@ -35,6 +40,7 @@ public class SessionServices {
      * Creates an instance of session services object without an external session source handler
      */
     public SessionServices( ) {
+        LOGGER.log( Level.FINE, "Initializing session services and using internal session container" );
         this.internalSessionContainer = InternalSessionContainer.getInstance( );
         this.loadSessionsFromExternalLoader = false;
     }
@@ -47,6 +53,7 @@ public class SessionServices {
      * @return {@link SessionResponse<String>} session response
      */
     public SessionResponse<String> createSession( String sessionClass, long timeout ) {
+        LOGGER.log( Level.FINE, "Creating session for the provided class {0} with timeout {1}s", new Object[]{ sessionClass, timeout } );
         return internalSessionContainer.createSession( sessionClass, timeout );
     }
 
@@ -56,7 +63,7 @@ public class SessionServices {
      * from the {@link ExternalSessionContainer} object
      *
      * @param sessionId session id
-     * @return {@link SessionResponse< Session >} session response
+     * @return {@link SessionResponse<Session>} session response
      */
     public SessionResponse<Session> loadSession( String sessionId ) {
         SessionResponse<Session> session = loadContainerLocalSession( sessionId );
@@ -100,6 +107,7 @@ public class SessionServices {
      * @return {@link SessionResponse<Session>} session response
      */
     public SessionResponse<Session> loadContainerLocalSession( String sessionId ) {
+        LOGGER.log( Level.FINE, "Loading session {0} from internal session container", new Object[]{ sessionId } );
         Session session = internalSessionContainer.loadSessionFromContainer( sessionId );
         if ( session == null ) {
             return new SessionResponse<>( "No session for session id : " + sessionId + " found in local container", SessionCode.ERROR, null );
@@ -116,6 +124,7 @@ public class SessionServices {
      * @return {@link SessionResponse<Session>} session response
      */
     public SessionResponse<Session> loadExternalSourceSession( String sessionId ) {
+        LOGGER.log( Level.FINE, "Loading session {0} from external session container", new Object[]{ sessionId } );
         SessionResponse<SessionMemento> mementoSessionResponse = externalSessionContainer.loadSession( sessionId );
         if ( mementoSessionResponse.isSuccess( ) ) {
             SessionMemento memento = mementoSessionResponse.getData( );
